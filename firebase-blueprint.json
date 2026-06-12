@@ -1,0 +1,72 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile and settings",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" }
+      },
+      "required": ["email"]
+    },
+    "UserWatchlist": {
+      "title": "UserWatchlist",
+      "description": "A user's custom watchlist",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "symbolsTW": { "type": "array", "items": { "type": "string" } },
+        "symbolsUS": { "type": "array", "items": { "type": "string" } },
+        "symbols": { "type": "array", "items": { "type": "string" } },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["userId", "updatedAt"]
+    },
+    "Strategy": {
+      "title": "Strategy",
+      "description": "User saved trading strategy parameters",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "peLimit": { "type": "number" },
+        "growthTarget": { "type": "number" },
+        "tags": { "type": "array", "items": { "type": "string" } },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["userId", "name", "peLimit", "growthTarget", "createdAt"]
+    },
+    "PriceAlert": {
+      "title": "PriceAlert",
+      "description": "User defined price alerts",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "symbol": { "type": "string" },
+        "targetPrice": { "type": "number" },
+        "condition": { "type": "string" },
+        "isActive": { "type": "boolean" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["userId", "symbol", "targetPrice", "condition", "isActive", "createdAt"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "User profiles"
+    },
+    "watchlists/{watchlistId}": {
+      "schema": { "$ref": "#/entities/UserWatchlist" },
+      "description": "User watchlists"
+    },
+    "strategies/{strategyId}": {
+      "schema": { "$ref": "#/entities/Strategy" },
+      "description": "User saved strategies"
+    },
+    "priceAlerts/{alertId}": {
+      "schema": { "$ref": "#/entities/PriceAlert" },
+      "description": "User price alerts"
+    }
+  }
+}

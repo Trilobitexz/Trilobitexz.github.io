@@ -1,0 +1,6 @@
+{
+  "name": "極簡股票 APP",
+  "description": "提供資訊減法的看盤工具：精確股票代碼檢索、本益比、一年內高低點 Sparkline 趨勢線，並利用 Gemini AI 進行自選股之自動化高相關性新聞摘要與過濾。",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

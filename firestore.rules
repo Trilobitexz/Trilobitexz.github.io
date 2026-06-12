@@ -1,0 +1,137 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Primitive Helpers
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    function isSignedIn() { return request.auth != null && request.auth.token.email_verified == true; }
+    
+    // User profile validation
+    function isValidUser(data) {
+      return data.keys().hasAll(['email']) && 
+             data.keys().size() == 1 &&
+             data.email is string && data.email.size() <= 200;
+    }
+
+    match /users/{userId} {
+      allow get: if isSignedIn() && request.auth.uid == userId;
+      allow list: if false;
+      
+      allow create: if isSignedIn() && 
+                    request.auth.uid == userId && 
+                    isValidId(userId) &&
+                    isValidUser(incoming());
+                    
+      allow update: if isSignedIn() && 
+                    request.auth.uid == userId && 
+                    isValidUser(incoming()) &&
+                    incoming().diff(existing()).affectedKeys().hasOnly(['email']) &&
+                    incoming().email == existing().email; // Readonly
+                    
+      allow delete: if false; // Cannot delete user profile
+    }
+
+    // Watchlist validation
+    function isValidWatchlist(data) {
+      return data.keys().hasAll(['userId', 'symbolsTW', 'symbolsUS', 'symbols', 'updatedAt']) && 
+             data.keys().size() == 5 &&
+             data.userId is string && data.userId.size() <= 128 &&
+             data.symbolsTW is list && data.symbolsTW.size() <= 50 &&
+             data.symbolsUS is list && data.symbolsUS.size() <= 50 &&
+             data.symbols is list && data.symbols.size() <= 50 &&
+             data.updatedAt is timestamp;
+    }
+
+    match /watchlists/{watchlistId} {
+      allow get: if isSignedIn() && (resource == null || resource.data.userId == request.auth.uid);
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      
+      allow create: if isSignedIn() && 
+                    isValidId(watchlistId) &&
+                    isValidWatchlist(incoming()) &&
+                    incoming().userId == request.auth.uid &&
+                    incoming().updatedAt == request.time;
+                    
+      allow update: if isSignedIn() && 
+                    existing().userId == request.auth.uid &&
+                    isValidWatchlist(incoming()) &&
+                    incoming().userId == existing().userId &&
+                    incoming().updatedAt == request.time &&
+                    incoming().diff(existing()).affectedKeys().hasOnly(['symbolsTW', 'symbolsUS', 'symbols', 'updatedAt']);
+                    
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+    }
+
+    // Strategy validation
+    function isValidStrategy(data) {
+      return data.keys().hasAll(['userId', 'name', 'peLimit', 'growthTarget', 'createdAt', 'tags']) && 
+             data.keys().size() == 6 &&
+             data.userId is string && data.userId.size() <= 128 &&
+             data.name is string && data.name.size() <= 100 &&
+             data.peLimit is number &&
+             data.growthTarget is number &&
+             data.tags is list && data.tags.size() <= 10 &&
+             ((data.tags.size() > 0 && data.tags[0] is string) || data.tags.size() == 0) &&
+             data.createdAt is timestamp;
+    }
+
+    match /strategies/{strategyId} {
+      allow get: if isSignedIn() && (resource == null || resource.data.userId == request.auth.uid);
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      
+      allow create: if isSignedIn() && 
+                    isValidId(strategyId) &&
+                    isValidStrategy(incoming()) &&
+                    incoming().userId == request.auth.uid &&
+                    incoming().createdAt == request.time;
+                    
+      allow update: if isSignedIn() && 
+                    existing().userId == request.auth.uid &&
+                    isValidStrategy(incoming()) &&
+                    incoming().userId == existing().userId &&
+                    incoming().createdAt == existing().createdAt &&
+                    incoming().diff(existing()).affectedKeys().hasOnly(['name', 'peLimit', 'growthTarget', 'tags']);
+                    
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+    }
+
+    // PriceAlert validation
+    function isValidPriceAlert(data) {
+      return data.keys().hasAll(['userId', 'symbol', 'targetPrice', 'condition', 'isActive', 'createdAt']) && 
+             data.keys().size() == 6 &&
+             data.userId is string && data.userId.size() <= 128 &&
+             data.symbol is string && data.symbol.size() <= 20 &&
+             data.targetPrice is number &&
+             data.condition is string && (data.condition == 'above' || data.condition == 'below') &&
+             data.isActive is bool &&
+             data.createdAt is timestamp;
+    }
+
+    match /priceAlerts/{alertId} {
+      allow get: if isSignedIn() && (resource == null || resource.data.userId == request.auth.uid);
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      
+      allow create: if isSignedIn() && 
+                    isValidId(alertId) &&
+                    isValidPriceAlert(incoming()) &&
+                    incoming().userId == request.auth.uid &&
+                    incoming().createdAt == request.time;
+                    
+      allow update: if isSignedIn() && 
+                    existing().userId == request.auth.uid &&
+                    isValidPriceAlert(incoming()) &&
+                    incoming().userId == existing().userId &&
+                    incoming().createdAt == existing().createdAt &&
+                    incoming().diff(existing()).affectedKeys().hasOnly(['targetPrice', 'condition', 'isActive']);
+                    
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+    }
+  }
+}
